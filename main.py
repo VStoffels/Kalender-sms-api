@@ -214,7 +214,7 @@ def send_reminders():
                         print(f"Sending 7-day reminder for event {event_id}")
                         reminder_text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}.\nHerplannen? Sms/bel +32471799114"
                     elif label == "24_hours":
-                        reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is morgen om {time_str}.\nStuur \"OK\" om te bevestigen."
+                        reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}.\nStuur \"OK\" om te bevestigen."
                     elif label == "2_hour":
                         reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}.\nWe kijken ernaar uit!"
                     response = requests.post(
