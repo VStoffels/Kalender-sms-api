@@ -94,7 +94,6 @@ def format_date(date_obj: datetime):
 @app.post("/ringring-webhook")
 def ringring_webhook(request: Request):
     payload = request.json()
-    print(f"RingRing callback: {payload}")
     return JSONResponse(content={"status": "ok"})
 
 @app.get("/send-reminders")
@@ -140,8 +139,6 @@ def send_reminders_task():
         name = extract_name_from_description(description)
         if not phone:
             continue
-        print(f"sending test sms to {phone}")
-        print(f"sent reminders: {sent_reminders.get(event_id,[])}")
 
         # Initialize reminders tracking for this event
         if event_id not in sent_reminders:
@@ -180,14 +177,12 @@ def send_reminders_task():
 
         # Only schedule reminders if now < event start
         if now < start_dt:
-            print(f"Scheduling reminders for event {event_id} at {start_dt}")
 
             # 7-day reminder
             if "7_days" not in sent_reminders[event_id]:
                 reminder_7_days = start_dt - timedelta(days=7)
                 # Only schedule if the reminder time is still in the future
                 if reminder_7_days.day == now.day:
-                    print("hitting 7 days")
                     intervals["7_days"] = reminder_7_days
             
             # 24-hour reminder
@@ -213,7 +208,6 @@ def send_reminders_task():
             if now >= remind_time and now < start_dt:
 
                 if label == "7_days":
-                    print(f"Sending 7-day reminder for event {event_id}")
                     reminder_text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}.\nHerplannen? Sms/bel +32471799114"
                 elif label == "24_hours":
                     reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}.\nStuur \"OK\" om te bevestigen."
