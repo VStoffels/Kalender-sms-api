@@ -135,33 +135,93 @@ def send_reminders():
         name = extract_name_from_description(description)
         if not phone:
             continue
-        
-        if summary.lower() == "test sms":
-            print(f"sending test sms to {phone}")
-            print(f"sent reminders: {sent_reminders.get(event_id,[])}")
+        print(f"sending test sms to {phone}")
+        print(f"sent reminders: {sent_reminders.get(event_id,[])}")
 
 
-            # Initialize reminders tracking for this event
-            if event_id not in sent_reminders:
-                sent_reminders[event_id] = []
+        # Initialize reminders tracking for this event
+        if event_id not in sent_reminders:
+            sent_reminders[event_id] = []
 
-            date_str = format_date(start_dt.date())
-            time_str = start_dt.time().strftime("%H:%M")
+        date_str = format_date(start_dt.date())
+        time_str = start_dt.time().strftime("%H:%M")
 
-            # --- 1. Send initial confirmation ---
-            if "initial" not in sent_reminders[event_id]:
-                message_text = (
-                    f"Beste {name},\n"
-                    f"Uw afspraak met EnergyLovers op {date_str} om {time_str} is bevestigd.\n"
-                    f"Herplannen? Sms/bel +32471799114"
-                )
+        # --- 1. Send initial confirmation ---
+        if "initial" not in sent_reminders[event_id]:
+            message_text = (
+                f"Beste {name},\n"
+                f"Uw afspraak met EnergyLovers op {date_str} om {time_str} is bevestigd.\n"
+                f"Herplannen? Sms/bel +32471799114"
+            )
+            response = requests.post(
+                "https://api.ringring.be/sms/v1/message",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "apiKey": RINGRING_API_KEY,  # Replace with your RingRing API key
+                    "to": phone,
+                    "message": message_text,
+                },
+            )
+            if response.status_code in (200, 201):
+                sent_messages.append({
+                    "event": summary,
+                    "to": phone,
+                    "status": "sent",
+                    "reminder": "initial"
+                })
+                sent_reminders[event_id].append("initial")
+
+        # --- 2. Compute reminder intervals ---
+        intervals = {}
+
+        # Only schedule reminders if now < event start
+        if now < start_dt:
+            print(f"Scheduling reminders for event {event_id} at {start_dt}")
+
+            # 7-day reminder
+            if "7_days" not in sent_reminders[event_id]:
+                reminder_7_days = start_dt - timedelta(days=7)
+                # Only schedule if the reminder time is still in the future
+                if reminder_7_days.day == now.day:
+                    print("hitting 7 days")
+                    intervals["7_days"] = reminder_7_days
+            
+            # 24-hour reminder
+            if "24_hours" not in sent_reminders[event_id]:
+                reminder_24_hours = start_dt - timedelta(hours=24)
+                # Only send if the event hasn’t happened yet
+                if now < start_dt:
+                    intervals["24_hours"] = reminder_24_hours
+
+            # 2-hour reminder
+            if "2_hour" not in sent_reminders[event_id]:
+                reminder_2_hour = start_dt - timedelta(hours=2)
+                # Only send if the event hasn’t happened yet
+                if now < start_dt:  
+                    intervals["2_hour"] = reminder_2_hour
+
+        # --- 3. Send reminders ---
+        for label, remind_time in intervals.items():
+            # Skip if already sent
+            if label in sent_reminders[event_id]:
+                continue
+            # Only send if current time has passed the reminder but is still before the event
+            if now >= remind_time and now < start_dt:
+
+                if label == "7_days":
+                    print(f"Sending 7-day reminder for event {event_id}")
+                    reminder_text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}.\nHerplannen? Sms/bel +32471799114"
+                elif label == "24_hours":
+                    reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}.\nStuur \"OK\" om te bevestigen."
+                elif label == "2_hour":
+                    reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}.\nWe kijken ernaar uit!"
                 response = requests.post(
                     "https://api.ringring.be/sms/v1/message",
                     headers={"Content-Type": "application/json"},
                     json={
                         "apiKey": RINGRING_API_KEY,  # Replace with your RingRing API key
                         "to": phone,
-                        "message": message_text,
+                        "message": reminder_text,
                     },
                 )
                 if response.status_code in (200, 201):
@@ -169,71 +229,9 @@ def send_reminders():
                         "event": summary,
                         "to": phone,
                         "status": "sent",
-                        "reminder": "initial"
+                        "reminder": label
                     })
-                    sent_reminders[event_id].append("initial")
-
-            # --- 2. Compute reminder intervals ---
-            intervals = {}
-
-            # Only schedule reminders if now < event start
-            if now < start_dt:
-                print(f"Scheduling reminders for event {event_id} at {start_dt}")
-
-                # 7-day reminder
-                if "7_days" not in sent_reminders[event_id]:
-                    reminder_7_days = start_dt - timedelta(days=7)
-                    # Only schedule if the reminder time is still in the future
-                    if reminder_7_days.day == now.day:
-                        print("hitting 7 days")
-                        intervals["7_days"] = reminder_7_days
-                
-                # 24-hour reminder
-                if "24_hours" not in sent_reminders[event_id]:
-                    reminder_24_hours = start_dt - timedelta(hours=24)
-                    # Only send if the event hasn’t happened yet
-                    if now < start_dt:
-                        intervals["24_hours"] = reminder_24_hours
-
-                # 2-hour reminder
-                if "2_hour" not in sent_reminders[event_id]:
-                    reminder_2_hour = start_dt - timedelta(hours=2)
-                    # Only send if the event hasn’t happened yet
-                    if now < start_dt:  
-                        intervals["2_hour"] = reminder_2_hour
-
-            # --- 3. Send reminders ---
-            for label, remind_time in intervals.items():
-                # Skip if already sent
-                if label in sent_reminders[event_id]:
-                    continue
-                # Only send if current time has passed the reminder but is still before the event
-                if now >= remind_time and now < start_dt:
-
-                    if label == "7_days":
-                        print(f"Sending 7-day reminder for event {event_id}")
-                        reminder_text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}.\nHerplannen? Sms/bel +32471799114"
-                    elif label == "24_hours":
-                        reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}.\nStuur \"OK\" om te bevestigen."
-                    elif label == "2_hour":
-                        reminder_text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}.\nWe kijken ernaar uit!"
-                    response = requests.post(
-                        "https://api.ringring.be/sms/v1/message",
-                        headers={"Content-Type": "application/json"},
-                        json={
-                            "apiKey": RINGRING_API_KEY,  # Replace with your RingRing API key
-                            "to": phone,
-                            "message": reminder_text,
-                        },
-                    )
-                    if response.status_code in (200, 201):
-                        sent_messages.append({
-                            "event": summary,
-                            "to": phone,
-                            "status": "sent",
-                            "reminder": label
-                        })
-                        sent_reminders[event_id].append(label)
+                    sent_reminders[event_id].append(label)
     save_sent_events(sent_reminders)
 
     return {"ok": True}
