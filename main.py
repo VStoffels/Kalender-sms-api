@@ -236,6 +236,6 @@ def send_reminders():
                         sent_reminders[event_id].append(label)
     save_sent_events(sent_reminders)
 
-    return {"sent": sent_messages, "fetched_events": len(events)}
+    return {"ok": True}
 
 
