@@ -77,8 +77,11 @@ def save_sent_events(event_ids):
         json.dump(event_ids, f)
 
 def extract_phone_from_description(desc: str):
-    match = re.search(r"\+?\d{8,15}", desc)
-    return match.group(0) if match else None
+    match = re.search(r"\+?(\d[\d\s]{7,20}\d)", desc)
+    if match:
+        # Clean up: remove spaces
+        return re.sub(r"\s+", "", match.group(0))
+    return None
 
 def extract_name_from_description(desc: str):
     match = re.search(r"Naam:\s*([A-Za-z\s]+)", desc)
