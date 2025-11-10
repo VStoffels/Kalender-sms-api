@@ -149,51 +149,50 @@ def send_reminders_task():
         if not phone:
             continue
 
-        if summary.lower().startswith("test"):
             
-            date_str = format_date(start_dt.date())
-            time_str = start_dt.time().strftime("%H:%M")
+        date_str = format_date(start_dt.date())
+        time_str = start_dt.time().strftime("%H:%M")
 
-            # Initial confirmation
-            if not reminder_sent(session, event_id, "initial"):
-                message_text = (
-                    f"Beste {name},\nUw afspraak met EnergyLovers op {date_str} om {time_str} is bevestigd.\n"
-                    f"Herplannen? Sms/bel +32471799114"
-                )
+        # Initial confirmation
+        if not reminder_sent(session, event_id, "initial"):
+            message_text = (
+                f"Beste {name},\nUw afspraak met EnergyLovers op {date_str} om {time_str} is bevestigd.\n"
+                f"Herplannen? Sms/bel +32471799114"
+            )
+            response = requests.post(
+                "https://api.ringring.be/sms/v1/message",
+                headers={"Content-Type": "application/json"},
+                json={"apiKey": RINGRING_API_KEY, "to": phone, "message": message_text},
+            )
+            if response.status_code in (200, 201):
+                record_reminder(session, event_id, "initial")
+                sent_messages.append({"event": summary, "to": phone, "status": "sent", "reminder": "initial"})
+
+        # Reminder intervals
+        reminders = {
+            "7_days": start_dt - timedelta(days=7),
+            "24_hours": start_dt - timedelta(hours=24),
+            "2_hour": start_dt - timedelta(hours=2),
+        }
+
+        for label, remind_time in reminders.items():
+            if reminder_sent(session, event_id, label):
+                continue
+            if now >= remind_time and now < start_dt:
+                if label == "7_days":
+                    text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}."
+                elif label == "24_hours":
+                    text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}."
+                elif label == "2_hour":
+                    text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}."
                 response = requests.post(
                     "https://api.ringring.be/sms/v1/message",
                     headers={"Content-Type": "application/json"},
-                    json={"apiKey": RINGRING_API_KEY, "to": phone, "message": message_text},
+                    json={"apiKey": RINGRING_API_KEY, "to": phone, "message": text},
                 )
                 if response.status_code in (200, 201):
-                    record_reminder(session, event_id, "initial")
-                    sent_messages.append({"event": summary, "to": phone, "status": "sent", "reminder": "initial"})
-
-            # Reminder intervals
-            reminders = {
-                "7_days": start_dt - timedelta(days=7),
-                "24_hours": start_dt - timedelta(hours=24),
-                "2_hour": start_dt - timedelta(hours=2),
-            }
-
-            for label, remind_time in reminders.items():
-                if reminder_sent(session, event_id, label):
-                    continue
-                if now >= remind_time and now < start_dt:
-                    if label == "7_days":
-                        text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}."
-                    elif label == "24_hours":
-                        text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}."
-                    elif label == "2_hour":
-                        text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}."
-                    response = requests.post(
-                        "https://api.ringring.be/sms/v1/message",
-                        headers={"Content-Type": "application/json"},
-                        json={"apiKey": RINGRING_API_KEY, "to": phone, "message": text},
-                    )
-                    if response.status_code in (200, 201):
-                        record_reminder(session, event_id, label)
-                        sent_messages.append({"event": summary, "to": phone, "status": "sent", "reminder": label})
+                    record_reminder(session, event_id, label)
+                    sent_messages.append({"event": summary, "to": phone, "status": "sent", "reminder": label})
 
     session.close()
     return {"ok": True, "sent": sent_messages}
