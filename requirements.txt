@@ -4,4 +4,5 @@ google_auth_oauthlib==1.2.3
 protobuf==6.33.0
 python-dotenv==1.2.1
 Requests==2.32.5
+psycopg2-binary==2.9.6
 uvicorn[standard]
