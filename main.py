@@ -180,11 +180,11 @@ def send_reminders_task():
                 continue
             if now >= remind_time and now < start_dt:
                 if label == "7_days":
-                    text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}."
+                    text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}.\nHerplannen? Sms/bel +32471799114"
                 elif label == "24_hours":
-                    text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}."
+                    text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is op {date_str} om {time_str}.\nStuur \"OK\" om te bevestigen."
                 elif label == "2_hour":
-                    text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}."
+                    text = f"Beste{name},\nHerinnering: uw afspraak met EnergyLovers is om {time_str}.\nWe kijken ernaar uit!"
                 response = requests.post(
                     "https://api.ringring.be/sms/v1/message",
                     headers={"Content-Type": "application/json"},
