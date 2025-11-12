@@ -195,4 +195,4 @@ def send_reminders_task():
                     sent_messages.append({"event": summary, "to": phone, "status": "sent", "reminder": label})
 
     session.close()
-    return {"ok": True, "sent": sent_messages}
+    return {"ok": True, "sent": ""}
