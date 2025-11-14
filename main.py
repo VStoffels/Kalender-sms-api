@@ -9,6 +9,9 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, and_
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
 import os, re, requests, json
+import logging
+logging.getLogger("googleapiclient.discovery").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.ERROR)
 
 load_dotenv()
 app = FastAPI()
@@ -92,7 +95,7 @@ async def ringring_webhook(request: Request):
 @app.get("/send-reminders")
 def send_reminders(background_tasks: BackgroundTasks):
     background_tasks.add_task(send_reminders_task)
-    return {"ok": True, "message": "Reminders processing started in background"}
+    return {"ok": True}
 
 # -------------------------------
 # Reminder logic
@@ -195,4 +198,4 @@ def send_reminders_task():
                     sent_messages.append({"event": summary, "to": phone, "status": "sent", "reminder": label})
 
     session.close()
-    return {"ok": True, "sent": ""}
+    return
