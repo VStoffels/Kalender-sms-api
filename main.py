@@ -181,6 +181,8 @@ def send_reminders_task():
         for label, remind_time in reminders.items():
             if reminder_sent(session, event_id, label):
                 continue
+            if label == "7_days" and (start_dt - now) < timedelta(days=7):
+                continue
             if now >= remind_time and now < start_dt:
                 if label == "7_days":
                     text = f"Beste{name},\nVriendelijke herinnering: afspraak met EnergyLovers op {date_str} om {time_str}.\nHerplannen? Sms/bel +32471799114"
